@@ -38,6 +38,7 @@ class PlayPage extends AbstractPage {
 class _PlayPageState extends AbstractPageState<PlayPage> {
   final GameController _gameController = Get.find<GameController>();
   final DllController _dllController = Get.find<DllController>();
+  double downloadProgress = 0.0;
 
   @override
   Widget? get button => LaunchButton(
@@ -48,7 +49,7 @@ class _PlayPageState extends AbstractPageState<PlayPage> {
 
   @override
   List<SettingTile> get settings => [
-        // 🔹 Fake dropdown showing version
+        // Fake dropdown
         SettingTile(
           icon: Icon(FluentIcons.tag_24_regular),
           title: Text("Version"),
@@ -68,16 +69,26 @@ class _PlayPageState extends AbstractPageState<PlayPage> {
           ),
         ),
 
-        // 🔹 Download button
+        // Download button + progress
         SettingTile(
           icon: Icon(FluentIcons.download_24_regular),
           title: Text("Download Fortnite 14.60"),
-          subtitle: Text("Click to download and install 14.60"),
-          content: Button(
-            child: Text("Download"),
-            onPressed: () async {
-              await _downloadFortnite();
-            },
+          subtitle: Text("Click to download and extract manually"),
+          content: Column(
+            children: [
+              Button(
+                child: Text("Download"),
+                onPressed: () async {
+                  await _downloadFortnite();
+                },
+              ),
+              SizedBox(height: 8),
+              LinearProgressBar(
+                value: downloadProgress,
+                min: 0,
+                max: 1,
+              ),
+            ],
           ),
         ),
 
@@ -91,13 +102,14 @@ class _PlayPageState extends AbstractPageState<PlayPage> {
         subtitle: Text(translations.settingsClientOptionsDescription),
         children: [
           SettingTile(
-              icon: Icon(FluentIcons.options_24_regular),
-              title: Text(translations.settingsClientArgsName),
-              subtitle: Text(translations.settingsClientArgsDescription),
-              content: TextFormBox(
-                placeholder: translations.settingsClientArgsPlaceholder,
-                controller: _gameController.customLaunchArgs,
-              ))
+            icon: Icon(FluentIcons.options_24_regular),
+            title: Text(translations.settingsClientArgsName),
+            subtitle: Text(translations.settingsClientArgsDescription),
+            content: TextFormBox(
+              placeholder: translations.settingsClientArgsPlaceholder,
+              controller: _gameController.customLaunchArgs,
+            ),
+          )
         ],
       );
 
@@ -114,10 +126,10 @@ class _PlayPageState extends AbstractPageState<PlayPage> {
         ),
       );
 
-  // 🔹 Download function
+  // Download .rar file
   Future<void> _downloadFortnite() async {
-    final url = "https://yourserver.com/14.60.zip"; // host your 14.60 zip here
-    final savePath = path.join("C:/ProjectRush/14.60", "14.60.zip");
+    final url = "https://public.simplyblk.xyz/14.60.rar";
+    final savePath = path.join("C:/ProjectRush/14.60", "14.60.rar");
 
     final dio = Dio();
     Directory(path.dirname(savePath)).createSync(recursive: true);
@@ -128,34 +140,24 @@ class _PlayPageState extends AbstractPageState<PlayPage> {
         savePath,
         onReceiveProgress: (received, total) {
           if (total != -1) {
-            print("Downloading: ${(received / total * 100).toStringAsFixed(0)}%");
+            setState(() {
+              downloadProgress = received / total;
+            });
           }
         },
       );
-
-      // Optional: unzip after download
-      // _unzipFortnite(savePath, path.join("C:/ProjectRush/14.60"));
+      // Show info for manual extraction
+      showDialog(
+        context: context,
+        builder: (_) => ContentDialog(
+          title: Text("Download complete"),
+          content: Text(
+              "14.60 downloaded to C:/ProjectRush/14.60/14.60.rar\nPlease extract manually before launching."),
+          actions: [Button(child: Text("OK"), onPressed: () => Navigator.pop(context))],
+        ),
+      );
     } catch (e) {
       print("Download failed: $e");
     }
   }
-
-  // 🔹 Optional unzip function
-  /*
-  void _unzipFortnite(String zipPath, String extractPath) {
-    final bytes = File(zipPath).readAsBytesSync();
-    final archive = ZipDecoder().decodeBytes(bytes);
-
-    for (final file in archive) {
-      final filename = path.join(extractPath, file.name);
-      if (file.isFile) {
-        final outFile = File(filename);
-        outFile.createSync(recursive: true);
-        outFile.writeAsBytesSync(file.content as List<int>);
-      } else {
-        Directory(filename).createSync(recursive: true);
-      }
-    }
-  }
-  */
 }
