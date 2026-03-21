@@ -10,8 +10,9 @@ import 'package:reboot_launcher/src/message/data.dart';
 import 'package:reboot_launcher/src/messenger/overlay.dart';
 import 'package:reboot_launcher/src/pager/abstract_page.dart';
 import 'package:reboot_launcher/src/button/game_start_button.dart';
-
-// ❌ REMOVED: version_selector import
+import 'package:dio/dio.dart';
+import 'dart:io';
+import 'package:path/path.dart' as path;
 
 final GlobalKey<OverlayTargetState> gameVersionOverlayTargetKey = GlobalKey();
 
@@ -47,11 +48,37 @@ class _PlayPageState extends AbstractPageState<PlayPage> {
 
   @override
   List<SettingTile> get settings => [
-        // ✅ REPLACED VERSION SELECTOR WITH STATIC TEXT
+        // 🔹 Fake dropdown showing version
         SettingTile(
           icon: Icon(FluentIcons.tag_24_regular),
           title: Text("Version"),
-          subtitle: Text("14.60"),
+          subtitle: Text("Fortnite 14.60"),
+          content: IgnorePointer(
+            child: DropdownButton<String>(
+              value: "14.60",
+              items: [
+                DropdownMenuItem(
+                  value: "14.60",
+                  child: Text("14.60"),
+                ),
+              ],
+              onChanged: (_) {},
+              isExpanded: true,
+            ),
+          ),
+        ),
+
+        // 🔹 Download button
+        SettingTile(
+          icon: Icon(FluentIcons.download_24_regular),
+          title: Text("Download Fortnite 14.60"),
+          subtitle: Text("Click to download and install 14.60"),
+          content: Button(
+            child: Text("Download"),
+            onPressed: () async {
+              await _downloadFortnite();
+            },
+          ),
         ),
 
         _options,
@@ -86,4 +113,49 @@ class _PlayPageState extends AbstractPageState<PlayPage> {
           child: Text(translations.gameResetDefaultsContent),
         ),
       );
+
+  // 🔹 Download function
+  Future<void> _downloadFortnite() async {
+    final url = "https://yourserver.com/14.60.zip"; // host your 14.60 zip here
+    final savePath = path.join("C:/ProjectRush/14.60", "14.60.zip");
+
+    final dio = Dio();
+    Directory(path.dirname(savePath)).createSync(recursive: true);
+
+    try {
+      await dio.download(
+        url,
+        savePath,
+        onReceiveProgress: (received, total) {
+          if (total != -1) {
+            print("Downloading: ${(received / total * 100).toStringAsFixed(0)}%");
+          }
+        },
+      );
+
+      // Optional: unzip after download
+      // _unzipFortnite(savePath, path.join("C:/ProjectRush/14.60"));
+    } catch (e) {
+      print("Download failed: $e");
+    }
+  }
+
+  // 🔹 Optional unzip function
+  /*
+  void _unzipFortnite(String zipPath, String extractPath) {
+    final bytes = File(zipPath).readAsBytesSync();
+    final archive = ZipDecoder().decodeBytes(bytes);
+
+    for (final file in archive) {
+      final filename = path.join(extractPath, file.name);
+      if (file.isFile) {
+        final outFile = File(filename);
+        outFile.createSync(recursive: true);
+        outFile.writeAsBytesSync(file.content as List<int>);
+      } else {
+        Directory(filename).createSync(recursive: true);
+      }
+    }
+  }
+  */
 }
